@@ -1,0 +1,65 @@
+.cni-site-functions-admin {
+	max-width: 1400px;
+}
+
+.cni-site-functions-admin__status {
+	margin-top: 24px;
+	font-size: 16px;
+}
+
+.cni-site-functions-admin textarea {
+	display: block;
+	width: 100%;
+	min-height: 560px;
+	font-family: Consolas, Monaco, monospace;
+	font-size: 14px;
+	line-height: 1.6;
+	tab-size: 4;
+}
+
+.cni-site-functions-admin .CodeMirror {
+	height: 620px;
+	border: 1px solid #8c8f94;
+	font-family: Consolas, Monaco, monospace;
+	font-size: 14px;
+	line-height: 1.6;
+}
+
+.cni-site-functions-validation {
+	margin-top: 24px;
+}
+
+.cni-site-functions-validation__content {
+	padding: 14px 18px;
+	border-left: 4px solid #72aee6;
+	background: #fff;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.cni-site-functions-validation__content h3 {
+	margin: 0 0 8px;
+}
+
+.cni-site-functions-validation__message {
+	white-space: pre-wrap;
+}
+
+.cni-site-functions-validation--error .cni-site-functions-validation__message {
+	font-family: Consolas, Monaco, monospace;
+}
+
+.cni-site-functions-validation__content p:last-child {
+	margin-bottom: 0;
+}
+
+.cni-site-functions-validation--success .cni-site-functions-validation__content {
+	border-left-color: #00a32a;
+}
+
+.cni-site-functions-validation--warning .cni-site-functions-validation__content {
+	border-left-color: #dba617;
+}
+
+.cni-site-functions-validation--error .cni-site-functions-validation__content {
+	border-left-color: #d63638;
+}
