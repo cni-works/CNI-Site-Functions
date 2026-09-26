@@ -2,7 +2,7 @@
 /**
  * Plugin Name: CNI Site Functions
  * Description: サイト固有のPHPコードを子テーマ更新から分離して管理します。
- * Version: 1.0.0
+ * Version: 1.0.1
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Update URI: https://github.com/cni-works/CNI-Site-Functions
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CNI_SITE_FUNCTIONS_VERSION', '1.0.0' );
+define( 'CNI_SITE_FUNCTIONS_VERSION', '1.0.1' );
 define( 'CNI_SITE_FUNCTIONS_FILE', __FILE__ );
 define( 'CNI_SITE_FUNCTIONS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CNI_SITE_FUNCTIONS_URL', plugin_dir_url( __FILE__ ) );

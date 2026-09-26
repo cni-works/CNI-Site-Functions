@@ -3,7 +3,7 @@ Contributors: cni
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,11 @@ functions.phpとの完全互換ではありません。ショートコード、i
 wp-config.phpでCNI_SITE_FUNCTIONS_SAFE_MODEをtrueにするか、wp-content直下へ.cni-site-functions-safe-modeという空ファイルを配置してください。
 
 == Changelog ==
+
+= 1.0.1 =
+* Fatal/実行エラーに初回・最終検知日時、回数、由来判定を追加しました。
+* 最近検知・過去記録の表示と、権限・nonce付きの記録削除を追加しました。
+* 保存・復元時も記録を保持し、旧データを後方互換で読み込みます。
 
 = 1.0.0 =
 * 初回正式リリース。

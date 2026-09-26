@@ -26,7 +26,7 @@ final class Code_Repository {
 	 */
 	private static function defaults() {
 		return array(
-			'schema_version' => 2,
+			'schema_version' => 3,
 			'enabled'        => false,
 			'active_code'    => '',
 			'previous_code'  => '',
@@ -47,7 +47,7 @@ final class Code_Repository {
 		$stored = is_array( $stored ) ? $stored : array();
 		$state  = array_merge( self::defaults(), $stored );
 
-		$state['schema_version'] = 2;
+		$state['schema_version'] = 3;
 		$state['enabled']        = (bool) $state['enabled'];
 		$state['active_code']    = is_string( $state['active_code'] ) ? $state['active_code'] : '';
 		$state['previous_code']  = is_string( $state['previous_code'] ) ? $state['previous_code'] : '';
@@ -80,7 +80,6 @@ final class Code_Repository {
 		$state['enabled']     = (bool) $enabled;
 		$state['updated_at']  = current_time( 'mysql', true );
 		$state['code_hash']   = hash( 'sha256', $code );
-		$state['execution_error'] = array();
 
 		update_option( self::OPTION_NAME, $state );
 	}
@@ -103,7 +102,6 @@ final class Code_Repository {
 		$state['has_previous']   = true;
 		$state['updated_at']     = current_time( 'mysql', true );
 		$state['code_hash']      = hash( 'sha256', $state['active_code'] );
-		$state['execution_error'] = array();
 
 		update_option( self::OPTION_NAME, $state );
 
@@ -140,15 +138,30 @@ final class Code_Repository {
 			$state['enabled'] = false;
 		}
 
-		$state['execution_error'] = array(
+		$previous = $state['execution_error'];
+		$error = self::normalize_execution_error( array(
 			'type'          => is_string( $type ) ? $type : 'runtime_error',
 			'message'       => is_string( $message ) ? $message : '',
 			'file'          => is_string( $file ) ? $file : '',
 			'line'          => max( 0, (int) $line ),
 			'occurred_at'   => current_time( 'mysql', true ),
 			'auto_disabled' => (bool) $auto_disable,
-		);
+		) );
+		if ( ! empty( $previous ) && ! empty( $error ) && $previous['fingerprint'] === $error['fingerprint'] ) {
+			$error['first_seen_at'] = $previous['first_seen_at'];
+			$error['count'] = min( PHP_INT_MAX - 1, $previous['count'] ) + 1;
+			$error['auto_disabled'] = $previous['auto_disabled'] || $auto_disable;
+			$error['attributable'] = $previous['attributable'] || $auto_disable;
+		}
+		$state['execution_error'] = $error;
 
+		update_option( self::OPTION_NAME, $state );
+	}
+
+	/** Clear diagnostics without changing code or enabling execution. */
+	public static function clear_execution_error() {
+		$state = self::get_state();
+		$state['execution_error'] = array();
 		update_option( self::OPTION_NAME, $state );
 	}
 
@@ -163,7 +176,7 @@ final class Code_Repository {
 			return array();
 		}
 
-		return array(
+		$normalized = array(
 			'type'          => isset( $error['type'] ) && is_string( $error['type'] ) ? $error['type'] : 'runtime_error',
 			'message'       => $error['message'],
 			'file'          => isset( $error['file'] ) && is_string( $error['file'] ) ? $error['file'] : '',
@@ -171,5 +184,12 @@ final class Code_Repository {
 			'occurred_at'   => isset( $error['occurred_at'] ) && is_string( $error['occurred_at'] ) ? $error['occurred_at'] : '',
 			'auto_disabled' => ! empty( $error['auto_disabled'] ),
 		);
+		$normalized['attributable'] = isset( $error['attributable'] ) ? (bool) $error['attributable'] : $normalized['auto_disabled'];
+		$normalized['first_seen_at'] = isset( $error['first_seen_at'] ) && is_string( $error['first_seen_at'] ) ? $error['first_seen_at'] : $normalized['occurred_at'];
+		$normalized['last_seen_at'] = isset( $error['last_seen_at'] ) && is_string( $error['last_seen_at'] ) ? $error['last_seen_at'] : $normalized['occurred_at'];
+		$normalized['occurred_at'] = $normalized['last_seen_at']; // Compatibility with older readers.
+		$normalized['count'] = isset( $error['count'] ) ? max( 1, (int) $error['count'] ) : 1;
+		$normalized['fingerprint'] = hash( 'sha256', serialize( array( $normalized['type'], $normalized['message'], $normalized['file'], $normalized['line'] ) ) );
+		return $normalized;
 	}
 }

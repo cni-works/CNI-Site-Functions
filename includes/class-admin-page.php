@@ -32,6 +32,7 @@ final class Admin_Page {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_action( 'admin_post_cni_site_functions_save', array( __CLASS__, 'handle_save' ) );
 		add_action( 'admin_post_cni_site_functions_restore', array( __CLASS__, 'handle_restore' ) );
+		add_action( 'admin_post_cni_site_functions_clear_error', array( __CLASS__, 'handle_clear_error' ) );
 	}
 
 	/**
@@ -275,6 +276,30 @@ final class Admin_Page {
 	 *
 	 * @return void
 	 */
+	public static function handle_clear_error() {
+		self::require_permission();
+		check_admin_referer( 'cni_site_functions_clear_error' );
+		Code_Repository::clear_execution_error();
+		self::set_notice( array(
+			'type' => 'success',
+			'title' => __( 'エラー記録を削除しました。', 'cni-site-functions' ),
+			'message' => __( '保存コードと有効状態は変更していません。監視中に再検知した場合は再び記録します。', 'cni-site-functions' ),
+		) );
+		self::redirect_back();
+	}
+
+	/** Describe recency only; absence of detection does not prove recovery. */
+	public static function error_recency( $last_seen_at ) {
+		$timestamp = strtotime( $last_seen_at . ' UTC' );
+		if ( '' === $last_seen_at || false === $timestamp || $timestamp > time() ) {
+			return __( '検知日時不明', 'cni-site-functions' );
+		}
+		return time() - $timestamp <= DAY_IN_SECONDS
+			? __( '最近検知（24時間以内）', 'cni-site-functions' )
+			: __( '過去の記録（最終検知から24時間超）', 'cni-site-functions' );
+	}
+
+	/** Render the settings page. */
 	public static function render_page() {
 		self::require_permission();
 
@@ -320,9 +345,15 @@ final class Admin_Page {
 			<?php endif; ?>
 
 			<?php if ( ! empty( $state['execution_error'] ) ) : ?>
-				<?php $was_auto_disabled = ! empty( $state['execution_error']['auto_disabled'] ); ?>
+				<?php $error = $state['execution_error']; $was_auto_disabled = $error['auto_disabled']; ?>
 				<div class="notice <?php echo $was_auto_disabled ? 'notice-error' : 'notice-warning'; ?> inline">
-					<p><strong><?php echo esc_html( $was_auto_disabled ? __( 'サイト固有PHPを自動停止しました。', 'cni-site-functions' ) : __( '原因を特定できないFatal Errorを記録しました。', 'cni-site-functions' ) ); ?></strong></p>
+					<p><strong><?php echo esc_html( in_array( $error['type'], array( 'fatal_error', 'unconfirmed_fatal_error' ), true ) ? __( 'Fatal Errorの記録があります。', 'cni-site-functions' ) : __( '実行エラーの記録があります。', 'cni-site-functions' ) ); ?></strong> <?php echo esc_html( self::error_recency( $error['last_seen_at'] ) ); ?></p>
+					<p><?php esc_html_e( 'この表示は現在も発生中であることを意味しません。再検知がないことも、原因の解消を保証しません。', 'cni-site-functions' ); ?></p>
+					<p><?php echo esc_html( sprintf( __( '初回検知（UTC）: %1$s ／ 最終検知（UTC）: %2$s ／ 検知回数: %3$d', 'cni-site-functions' ), $error['first_seen_at'] ?: __( '不明', 'cni-site-functions' ), $error['last_seen_at'] ?: __( '不明', 'cni-site-functions' ), $error['count'] ) ); ?></p>
+					<p><?php echo esc_html( $error['attributable'] ? __( '由来: CNI Site Functionsの保存コード', 'cni-site-functions' ) : __( '由来: 未確認（外部プラグイン・テーマ等の可能性）', 'cni-site-functions' ) ); ?></p>
+					<?php if ( $was_auto_disabled ) : ?>
+						<p><?php esc_html_e( '検知時にサイト固有PHPを自動停止した記録です。現在の有効状態は下のチェック欄を確認してください。', 'cni-site-functions' ); ?></p>
+					<?php endif; ?>
 					<p><?php echo esc_html( $state['execution_error']['message'] ); ?></p>
 					<?php if ( ! empty( $state['execution_error']['file'] ) ) : ?>
 						<p><code><?php echo esc_html( $state['execution_error']['file'] ); ?><?php echo ! empty( $state['execution_error']['line'] ) ? ':' . esc_html( $state['execution_error']['line'] ) : ''; ?></code></p>
@@ -330,6 +361,11 @@ final class Admin_Page {
 					<?php if ( ! $was_auto_disabled ) : ?>
 						<p><?php esc_html_e( 'CNI Site Functions由来と確認できなかったため、自動停止していません。問題が続く場合はセーフモード定数または停止ファイルを使用してください。', 'cni-site-functions' ); ?></p>
 					<?php endif; ?>
+					<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post">
+						<input type="hidden" name="action" value="cni_site_functions_clear_error">
+						<?php wp_nonce_field( 'cni_site_functions_clear_error' ); ?>
+						<?php submit_button( __( 'この記録を削除', 'cni-site-functions' ), 'secondary', 'submit', false ); ?>
+					</form>
 				</div>
 			<?php endif; ?>
 
